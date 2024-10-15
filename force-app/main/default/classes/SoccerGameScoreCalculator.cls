@@ -1,65 +1,56 @@
 public with sharing class SoccerGameScoreCalculator {
-    public Map<String, Integer> teamGoals = new Map<String, Integer>();
+    Map<String, Team> teams = new Map<String,Team>();
 
-    public void calculateTotalScore(List<String[]> goals) {
-        //Loop through each goal entry
+    public void calculateTotalScore(List<Goal> goals) {
         for(Integer i = 0; i < goals.size(); i++) {
-            String[] goal = goals[i];
-            String teamName = goal[0];
-            String playerName = goal[1];
-            Integer goalTime = Integer.valueOf(goal[2]);
-            
-            //Check if team exists in map, if assign team and score
-            if(!teamGoals.containsKey(teamName)) {
-                teamGoals.put(teamName, 0);
+            Goal goal = goals[i];
+            String teamName = goal.getTeamName();
+
+            if(!teams.containsKey(teamName)) {
+                teams.put(teamName, new Team(teamName));
             }
 
-            //Increase team goal count
-            teamGoals.put(teamName, teamGoals.get(teamName) + 1);
-
-            //Get goal details
-            getGoalDetails(teamName, playerName, goalTime);
-        }
-
-        //Get total goals for each team
-        getTotalGoals();
-
-        //Determine winner
-        getWinner();
-
-        }
-        //Create method for getting goal details
-        private void getGoalDetails(String teamName, String playerName, Integer goalTime) {
-            System.debug('Goal scored by ' + playerName + ' of ' + teamName + ' at ' + goalTime + ' minutes.');
-        }
-        //Create method for getting total goals for each team
-        private void getTotalGoals() {
-            for (String team : teamGoals.keySet()) {
-                System.debug(team + ' ' + teamGoals.get(team));
-            }
-        }
-        //Create method to determine winner 
-        private void getWinner() {
-            List<String> winners = new List<String>();
-            Integer maxGoals = 0;
-
-            for (String team : teamGoals.keySet()) {
-                Integer goals = teamGoals.get(team);
-                if (goals > maxGoals) {
-                    maxGoals = goals;
-                    winners.clear();
-                    winners.add(team);
-                } else if (
-                    goals == maxGoals) {
-                        winners.add(team);
-                    }
-                }
-
-            if (winners.size() == 1) {
-                System.debug(winners[0]);
-            } else {
-                System.debug('The game was tied at ' + maxGoals);
-            } 
-
+            teams.get(teamName).addGoal(goal);
         }
     }
+
+    public Map<String,Integer> getTotalGoals() {
+        Map<String,Integer> totalGoals = new Map<String,Integer>();
+
+        for(Team team : teams.values()) {
+            totalGoals.put(team.getTeamName(), team.getGoalCount());
+        }
+
+        return totalGoals;
+    }
+
+    public MatchResult determineWinner() {
+        Integer maxGoals = 0;
+        List<Team> winningTeams = new List<Team>();
+
+        for (Team team : teams.values()) {
+            Integer teamGoals = team.getGoalCount();
+            if (teamGoals > maxGoals) {
+                maxGoals = teamGoals;
+                winningTeams.clear();
+                winningTeams.add(team);
+            } else if (teamGoals == maxGoals) {
+                winningTeams.add(team);
+            }
+        }
+
+        return new MatchResult(winningTeams, maxGoals);
+    }
+
+    public SoccerGameResult calculateGameResult(List<Goal> goals) {
+        calculateTotalScore(goals);
+        MatchResult result = determineWinner();
+        List<String> goalDetails = new List<String>();
+        Map<String,Integer> totalGoals = getTotalGoals();
+
+        for (Goal goal : goals) {
+            goalDetails.add('Goal by ' + goal.getPlayerName() + ' for team ' + goal.getTeamName() + ' at ' + goal.getGoalTime() + ' minutes.');
+        }
+        return new SoccerGameResult(goalDetails, totalGoals, result.getWinner(), result.isTie());
+    }
+}
