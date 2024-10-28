@@ -10,7 +10,7 @@ public with sharing class Team {
 
     public void addGoal(Goal goal) {
         goalList.add(goal);
-        goalCount ++;
+        goalCount++;
     }
 
     public Integer getGoalCount() {
@@ -20,4 +20,4 @@ public with sharing class Team {
     public String getTeamName() {
         return teamName;
     }
-}
+    }

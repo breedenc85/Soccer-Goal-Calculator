@@ -8,14 +8,14 @@ public with sharing class MatchResult {
     }
 
     public String getWinner() {
-        if(winningTeam.size() == 1) {
-            return 'Winner: ' + winningTeam[0].getTeamName();
+        if (winningTeam.size() == 1) {
+        return 'Winner: ' + winningTeam[0].getTeamName();
         } else {
-            return 'The game is a tie';
+        return 'The game is a tie';
         }
     }
 
     public Boolean isTie() {
         return winningTeam.size() > 1;
     }
-}
+    }
