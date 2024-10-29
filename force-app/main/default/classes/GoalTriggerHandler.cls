@@ -45,58 +45,33 @@ public with sharing class GoalTriggerHandler {
 //         }
 //     }
 
-//     public void GoalAfterUpdate(List<Goal__c> goals) {
-//         Set<String> uniqueTeamNames = new Set<String>();
-//         for(Goal__c goal : goals) {
-//             String playerName = goal.getPlayerName();
-//             String teamName = goal.getTeamName();
-//             Integer goalTime = goal.getGoalTime();
-
-//             uniqueTeamNames.add(teamName);
-
-//             System.debug('Player: ' + playerName + ', Team: ' + teamName + ', GoalTime: ' + goalTime);
-//         }
-
-//         for(Integer i = 0; i < goals.size(); i++) {
-//             Goal__c newGoal = goals[i];
-//             Goal__c oldGoal = (Goal__c)Trigger.old[i];
-
-//             if (newGoal.getTeamName() != oldGoal.getTeamName() ||
-//                 newGoal.getGoalTime() != oldGoal.getGoalTime()) {
-                
-//                 List<Team__c> teamsToUpdate = new List<String>();
-                
-//                 if(newGoal.getTeamName() != oldGoal.getTeamName()) {
-//                     String oldTeamName = oldGoal.getTeamName();
-//                     String newTeamName = newGoal.getTeamName();
-
-//                     Team__c oldTeam = [
-//                             SELECT 
-//                                 ID,
-//                                 Goal_Count__c
-//                             FROM Team__c 
-//                             WHERE Team_Name__c = : oldTeamName LIMIT 1
-//                     ];
-//                     oldTeam.Goal_Count_c--;
-//                     teamsToUpdate.add(oldTeam); 
-
-//                     Team__c newTeam = [
-//                             SELECT 
-//                                 ID,
-//                                 Goal_Count__c
-//                             FROM Team 
-//                             WHERE Team_Name__c = : newTeamName LIMIT 1
-//                     ];
-//                     newTeam.Goal_Count_c++;
-//                     teamsToUpdate.add(newTeam);
-//                 }
-
-//                 if(newGoal.getTeamName() == oldGoal.getTeamName() && 
-//                     newGoal.getGoalTime() != oldGoal.getGoalTime()) {
-                    
-//                     Integer newGoalTime = newGoal.getGoalTime();
-//                 }
-//             }
-//         }
-//     }
+    public void GoalAfterUpdate(List<Goal__c> goals) {
+        Set<Id> matchIds = new Set<Id>();
+        for(Goal__c goal : goals) {
+            matches.add(goal.Match__c);
+        }
+        List<Match__c> matches = 
+        [SELECT Id, Team_1__c, Team_2__c, Score_1__c, Score_2__c,
+            (SELECT Id, Player__c, Team__c, Goal_Time__c FROM Goals__r)
+            FROM Match__c 
+            WHERE Id IN :matchIds
+        ];
+        for(Match__c match: matches) {
+            List<Goal> goalList = new List<Goal>();
+            for(Goal__c goalRecord: match.Goals__r) {
+                Goal goal = new Goal(
+                    goalRecord.Team_Name__c,
+                    goalRecord.Player_Name__c,
+                    goalRecord.Goal_Time__c
+                );
+                goalList.add(goal);
+            }
+            SoccerGameScoreCalculator calculator = new SoccerGameScoreCalculator();
+            SoccerGameResult result = calculator.calculateGameResult(goalList);
+            match.Score_1__c = result.goalsPerTeam.get(match.Team_1__c);
+            match.Score_2__c = result.goalsPerTeam.get(match.Team_2__c);
+            match.Winner__c = result.winner;
+        }
+        update matches;
+    }
 }
