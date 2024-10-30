@@ -20,4 +20,4 @@ public with sharing class Goal {
     public Integer getGoalTime() {
         return goalTime;
     }
-    }
+}
